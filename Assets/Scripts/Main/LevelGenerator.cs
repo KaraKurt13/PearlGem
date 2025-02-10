@@ -117,8 +117,7 @@ namespace Assets.Scripts.Main
 
         private void DivideSphereToSectors()
         {
-            var uncheckedElements = new List<SphereElement>(_sphereElements);
-            var sectors = new List<List<SphereElement>>();
+            var uncheckedElements = new HashSet<SphereElement>(_sphereElements);
 
             while (uncheckedElements.Count > 0)
             {
