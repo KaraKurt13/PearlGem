@@ -9,11 +9,9 @@ namespace Assets.Scripts.Main
 {
     public class Engine : MonoBehaviour
     {
-        public float sphereRadius = 5f;
-
         public LevelGenerator LevelGenerator;
 
-        public GameObject hexPrefab;
+        public Sphere Sphere;
 
         private void Update()
         {
@@ -26,7 +24,7 @@ namespace Assets.Scripts.Main
                 {
                     if (hit.collider != null)
                     {
-                        hit.collider.GetComponent<SphereElement>().Deactivate();
+                        hit.collider.GetComponent<SphereElement>().OnPlayerHit();
                     }
                 }
             }
@@ -34,7 +32,8 @@ namespace Assets.Scripts.Main
 
         void Start()
         {
-            LevelGenerator.Generate(4, 15);
+            LevelGenerator.Generate(4, 15, 3);
+            Sphere.Activate(10f);
         }
     }
 }

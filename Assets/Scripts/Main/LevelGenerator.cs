@@ -3,27 +3,42 @@ using Assets.Scripts.Objects;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor.Search;
 using UnityEngine;
 
 namespace Assets.Scripts.Main
 {
     public class LevelGenerator : MonoBehaviour
     {
+        [SerializeField]
+        private GameObject _spherePrefab;
+
+        [SerializeField]
+        private Transform _sphereContainer;
+
         private List<Vector3> _hexCenters;
 
         private List<SphereElement> _sphereElements;
 
-        [SerializeField]
-        private GameObject _spherePrefab;
-
         private float _distanceBetweenSpheres;
 
-        public void Generate(int radius, int sectorSize)
+        private readonly Dictionary<ColorTypeEnum, Color> _colors = new Dictionary<ColorTypeEnum, Color>()
+        {
+                { ColorTypeEnum.Blue, Color.blue },
+                { ColorTypeEnum.Red, Color.red },
+                { ColorTypeEnum.Green, Color.green },
+                { ColorTypeEnum.Yellow, Color.yellow },
+                { ColorTypeEnum.Grey, Color.grey },
+                { ColorTypeEnum.Magenta, Color.magenta }
+        };
+
+        public void Generate(int radius, int sectorSize, int colorsCount)
         {
             _hexCenters = GenerateIcospherePoints(3, radius);
             DrawSphereElements();
             CalculateNeighbours();
-            ColorSphere(sectorSize);
+            ColorSphere(sectorSize, colorsCount);
+            DivideSphereToSectors();
         }
 
         private void DrawSphereElements()
@@ -31,7 +46,7 @@ namespace Assets.Scripts.Main
             _sphereElements = new();
             foreach (var center in _hexCenters)
             {
-                var element = Instantiate(_spherePrefab, center, Quaternion.identity, transform).GetComponent<SphereElement>();
+                var element = Instantiate(_spherePrefab, center, Quaternion.identity, _sphereContainer).GetComponent<SphereElement>();
                 element.Center = center;
                 _sphereElements.Add(element);
             }
@@ -48,21 +63,12 @@ namespace Assets.Scripts.Main
             }
         }
 
-        private Color[] _colors =
-        {
-            Color.blue,
-            Color.red,
-            Color.green,
-            Color.yellow,
-            Color.grey,
-            Color.magenta
-        };
-
-        private void ColorSphere(int sectorSize)
+        private void ColorSphere(int sectorSize, int colorsCount)
         {
             var visitedElements = new HashSet<SphereElement>();
             var unpaintedElements = new List<SphereElement>(_sphereElements);
-            var colorsCount = _colors.Length;
+            var maxColorIndex = _colors.Count;
+            var colors = _colors.Keys.Take(colorsCount).ToArray();
 
             if (sectorSize < 1) sectorSize = 1;
 
@@ -70,32 +76,35 @@ namespace Assets.Scripts.Main
             while (unpaintedElements.Count > 0)
             {
                 var startElement = unpaintedElements[Random.Range(0, unpaintedElements.Count)];
-                var sectorColor = _colors[index % colorsCount];
+                var sectorColor = colors[index % colorsCount];
                 index++;
                 PaintSector(startElement, sectorColor, visitedElements, unpaintedElements, sectorSize);
             }
         }
 
-        private void PaintSector(SphereElement start, Color color, HashSet<SphereElement> visited, List<SphereElement> unpaintedElements, int sectorSize)
+        private void PaintSector(SphereElement start, ColorTypeEnum colorEnum, HashSet<SphereElement> visited, List<SphereElement> unpaintedElements, int sectorSize)
         {
             var queue = new Queue<SphereElement>();
+            var color = _colors[colorEnum];
             queue.Enqueue(start);
             visited.Add(start);
             unpaintedElements.Remove(start);
             start.Renderer.material.color = color;
+            start.ColorType = colorEnum;
 
             int paintedCount = 1;
             while (queue.Count > 0 && paintedCount < sectorSize)
             {
                 var current = queue.Dequeue();
 
-                foreach (var neighbor in current.Neighbours)
+                foreach (var neighbour in current.Neighbours)
                 {
-                    if (visited.Add(neighbor))
+                    if (visited.Add(neighbour))
                     {
-                        neighbor.Renderer.material.color = color;
-                        queue.Enqueue(neighbor);
-                        unpaintedElements.Remove(neighbor);
+                        neighbour.Renderer.material.color = color;
+                        neighbour.ColorType = colorEnum;
+                        queue.Enqueue(neighbour);
+                        unpaintedElements.Remove(neighbour);
                         paintedCount++;
 
                         if (paintedCount >= sectorSize) break;
@@ -103,6 +112,38 @@ namespace Assets.Scripts.Main
                 }
 
                 if (paintedCount >= sectorSize) break;
+            }
+        }
+
+        private void DivideSphereToSectors()
+        {
+            var uncheckedElements = new List<SphereElement>(_sphereElements);
+            var sectors = new List<List<SphereElement>>();
+
+            while (uncheckedElements.Count > 0)
+            {
+                var startElement = uncheckedElements.First();
+                var elementColor = startElement.ColorType;
+                var sector = new SphereSector();
+                var queue = new Queue<SphereElement>();
+                queue.Enqueue(startElement);
+                uncheckedElements.Remove(startElement);
+
+                while (queue.Count > 0)
+                {
+                    var currentElement = queue.Dequeue();
+                    sector.Elements.Add(currentElement);
+                    currentElement.RelatedSector = sector;
+
+                    foreach (var neighbor in currentElement.Neighbours)
+                    {
+                        if (uncheckedElements.Contains(neighbor) && neighbor.ColorType == startElement.ColorType)
+                        {
+                            queue.Enqueue(neighbor);
+                            uncheckedElements.Remove(neighbor);
+                        }
+                    }
+                }
             }
         }
 

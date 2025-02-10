@@ -2,17 +2,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TimeHelper : MonoBehaviour
+namespace Assets.Scripts.Helpers
 {
-    // Start is called before the first frame update
-    void Start()
+    public static class TimeHelper
     {
-        
-    }
+        public const int TicksPerSecond = 50;
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public static int SecondsToTicks(float seconds)
+        {
+            return Mathf.CeilToInt(seconds * TicksPerSecond);
+        }
+
+        public static float TicksToSeconds(int ticks)
+        {
+            return ticks / (float)TicksPerSecond;
+        }
     }
 }

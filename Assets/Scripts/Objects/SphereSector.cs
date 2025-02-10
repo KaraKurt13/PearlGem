@@ -6,6 +6,14 @@ namespace Assets.Scripts.Objects
 {
     public class SphereSector
     {
+        public List<SphereElement> Elements = new();
 
+        public void Destroy()
+        {
+            foreach (var element in Elements)
+            {
+                element.gameObject.SetActive(false);
+            }
+        }
     }
 }

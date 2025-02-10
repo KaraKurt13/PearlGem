@@ -8,23 +8,24 @@ namespace Assets.Scripts.Objects
     {
         public List<SphereElement> Neighbours;
 
+        public SphereSector RelatedSector;
+
         public Vector3 Center;
 
         public Rigidbody Rigidbody;
 
         public MeshRenderer Renderer;
 
-        public void Deactivate()
-        {
-            Renderer.material.color = Color.red;
+        public ColorTypeEnum ColorType;
 
-            foreach (var neighbour in Neighbours)
-                neighbour.Renderer.material.color = Color.green;
+        public void OnPlayerHit()
+        {
+            RelatedSector.Destroy();
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            Deactivate();
+            OnPlayerHit();
         }
     }
 }
