@@ -2,7 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SphereSector
+namespace Assets.Scripts.Objects
 {
+    public class SphereSector
+    {
 
+    }
 }

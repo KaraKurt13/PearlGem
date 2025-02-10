@@ -1,4 +1,5 @@
 using Assets.Scripts.Helpers;
+using Assets.Scripts.Objects;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,9 @@ namespace Assets.Scripts.Main
     public class Engine : MonoBehaviour
     {
         public float sphereRadius = 5f;
-        public int hexCount = 500; // Количество хексов на сфере
+
+        public LevelGenerator LevelGenerator;
+
         public GameObject hexPrefab;
         public List<SphereElement> sphereElements = new List<SphereElement>();
 
