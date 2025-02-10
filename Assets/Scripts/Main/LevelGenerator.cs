@@ -16,11 +16,14 @@ namespace Assets.Scripts.Main
         [SerializeField]
         private GameObject _spherePrefab;
 
-        public void Generate(int radius)
+        private float _distanceBetweenSpheres;
+
+        public void Generate(int radius, int sectorSize)
         {
-            _hexCenters = MathHelper.GenerateIcospherePoints(5, radius);
+            _hexCenters = GenerateIcospherePoints(3, radius);
             DrawSphereElements();
             CalculateNeighbours();
+            ColorSphere(sectorSize);
         }
 
         private void DrawSphereElements()
@@ -40,9 +43,158 @@ namespace Assets.Scripts.Main
             {
                 var center = element.Center;
                 element.Neighbours = _sphereElements
-                    .Where(other => other != element && Vector3.Distance(center, other.Center) <= 1.1f)
+                    .Where(other => other != element && Vector3.Distance(center, other.Center) <= _distanceBetweenSpheres)
                     .ToList();
             }
         }
+
+        private Color[] _colors =
+        {
+            Color.blue,
+            Color.red,
+            Color.green,
+            Color.yellow,
+            Color.grey,
+            Color.magenta
+        };
+
+        private void ColorSphere(int sectorSize)
+        {
+            var visitedElements = new HashSet<SphereElement>();
+            var unpaintedElements = new List<SphereElement>(_sphereElements);
+            var colorsCount = _colors.Length;
+
+            if (sectorSize < 1) sectorSize = 1;
+
+            int index = 0;
+            while (unpaintedElements.Count > 0)
+            {
+                var startElement = unpaintedElements[Random.Range(0, unpaintedElements.Count)];
+                var sectorColor = _colors[index % colorsCount];
+                index++;
+                PaintSector(startElement, sectorColor, visitedElements, unpaintedElements, sectorSize);
+            }
+        }
+
+        private void PaintSector(SphereElement start, Color color, HashSet<SphereElement> visited, List<SphereElement> unpaintedElements, int sectorSize)
+        {
+            var queue = new Queue<SphereElement>();
+            queue.Enqueue(start);
+            visited.Add(start);
+            unpaintedElements.Remove(start);
+            start.Renderer.material.color = color;
+
+            int paintedCount = 1;
+            while (queue.Count > 0 && paintedCount < sectorSize)
+            {
+                var current = queue.Dequeue();
+
+                foreach (var neighbor in current.Neighbours)
+                {
+                    if (visited.Add(neighbor))
+                    {
+                        neighbor.Renderer.material.color = color;
+                        queue.Enqueue(neighbor);
+                        unpaintedElements.Remove(neighbor);
+                        paintedCount++;
+
+                        if (paintedCount >= sectorSize) break;
+                    }
+                }
+
+                if (paintedCount >= sectorSize) break;
+            }
+        }
+
+        #region Math
+        private List<Vector3> GenerateIcospherePoints(int subdivisions, float radius)
+        {
+            List<Vector3> vertices = new List<Vector3>();
+            List<int[]> triangles = new List<int[]>();
+
+            float t = (1f + Mathf.Sqrt(5f)) / 2f;
+
+            vertices.Add(new Vector3(-1f, t, 0f).normalized * radius);
+            vertices.Add(new Vector3(1f, t, 0f).normalized * radius);
+            vertices.Add(new Vector3(-1f, -t, 0f).normalized * radius);
+            vertices.Add(new Vector3(1f, -t, 0f).normalized * radius);
+
+            vertices.Add(new Vector3(0f, -1f, t).normalized * radius);
+            vertices.Add(new Vector3(0f, 1f, t).normalized * radius);
+            vertices.Add(new Vector3(0f, -1f, -t).normalized * radius);
+            vertices.Add(new Vector3(0f, 1f, -t).normalized * radius);
+
+            vertices.Add(new Vector3(t, 0f, -1f).normalized * radius);
+            vertices.Add(new Vector3(t, 0f, 1f).normalized * radius);
+            vertices.Add(new Vector3(-t, 0f, -1f).normalized * radius);
+            vertices.Add(new Vector3(-t, 0f, 1f).normalized * radius);
+
+            int[] faces = {
+                0, 11, 5,  0, 5, 1,  0, 1, 7,  0, 7, 10,  0, 10, 11,
+                1, 5, 9,  5, 11, 4,  11, 10, 2,  10, 7, 6,  7, 1, 8,
+                3, 9, 4,  3, 4, 2,  3, 2, 6,  3, 6, 8,  3, 8, 9,
+                4, 9, 5,  2, 4, 11,  6, 2, 10,  8, 6, 7,  9, 8, 1
+            };
+
+            for (int i = 0; i < faces.Length; i += 3)
+            {
+                triangles.Add(new int[] { faces[i], faces[i + 1], faces[i + 2] });
+            }
+
+            Dictionary<long, int> midPointCache = new Dictionary<long, int>();
+
+            int GetMiddlePoint(int p1, int p2)
+            {
+                long smallerIndex = Mathf.Min(p1, p2);
+                long greaterIndex = Mathf.Max(p1, p2);
+                long key = (smallerIndex << 32) + greaterIndex;
+
+                if (midPointCache.TryGetValue(key, out int index))
+                    return index;
+
+                Vector3 middle = ((vertices[p1] + vertices[p2]) * 0.5f).normalized * radius;
+                vertices.Add(middle);
+                int newIndex = vertices.Count - 1;
+                midPointCache[key] = newIndex;
+                return newIndex;
+            }
+
+            for (int i = 0; i < subdivisions; i++)
+            {
+                List<int[]> newTriangles = new List<int[]>();
+
+                foreach (var tri in triangles)
+                {
+                    int a = tri[0];
+                    int b = tri[1];
+                    int c = tri[2];
+
+                    int ab = GetMiddlePoint(a, b);
+                    int bc = GetMiddlePoint(b, c);
+                    int ca = GetMiddlePoint(c, a);
+
+                    newTriangles.Add(new int[] { a, ab, ca });
+                    newTriangles.Add(new int[] { b, bc, ab });
+                    newTriangles.Add(new int[] { c, ca, bc });
+                    newTriangles.Add(new int[] { ab, bc, ca });
+                }
+
+                triangles = newTriangles;
+            }
+
+            _distanceBetweenSpheres = GetEdgeLength(vertices, triangles);
+
+            return vertices;
+        }
+
+        private float GetEdgeLength(List<Vector3> vertices, List<int[]> triangles)
+        {
+            var firstEdge = triangles[0];
+            var rawDistance = Vector3.Distance(vertices[firstEdge[0]], vertices[firstEdge[1]]);
+            var distanceOffset = rawDistance / 2;
+            return rawDistance + distanceOffset;
+
+        }
+        #endregion Math
     }
 }

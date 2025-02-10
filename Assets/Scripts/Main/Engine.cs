@@ -15,7 +15,6 @@ namespace Assets.Scripts.Main
 
         public GameObject hexPrefab;
 
-
         private void Update()
         {
             if (Input.GetMouseButtonDown(0))
@@ -35,7 +34,7 @@ namespace Assets.Scripts.Main
 
         void Start()
         {
-            LevelGenerator.Generate(5);
+            LevelGenerator.Generate(4, 15);
         }
     }
 }
