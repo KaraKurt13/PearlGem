@@ -286,6 +286,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 919e2d82b4ac79847b92ab302464b44a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Blue: {fileID: 8953458263516775118, guid: 595dda3e0ace65447a9770666e7e2d76, type: 3}
+  Red: {fileID: 8953458263516775118, guid: 61729f75915f0634c9de6c152ae50500, type: 3}
+  Green: {fileID: 8953458263516775118, guid: 60e43d47a08c08b4b8fe1006a6654843, type: 3}
+  Yellow: {fileID: 8953458263516775118, guid: 69c6d772e7c0eec41ba5e40e9845a0fb, type: 3}
+  Grey: {fileID: 8953458263516775118, guid: 51ea81eea3061994395040a0e9309238, type: 3}
+  Magenta: {fileID: 8953458263516775118, guid: 97afdff37a3d7e2409b935918b862c2f, type: 3}
   _spherePrefab: {fileID: 8953458263516775118, guid: 61729f75915f0634c9de6c152ae50500,
     type: 3}
   _sphereContainer: {fileID: 848732932}

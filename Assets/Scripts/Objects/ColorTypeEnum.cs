@@ -6,7 +6,6 @@ namespace Assets.Scripts.Objects
 {
     public enum ColorTypeEnum
     {
-        None,
         Blue,
         Red,
         Green,

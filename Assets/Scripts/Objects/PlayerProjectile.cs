@@ -16,12 +16,11 @@ namespace Assets.Scripts.Objects
 
         public ColorTypeEnum Color;
 
-        public void SetColor()
+        public void SetColor(ColorTypeEnum colorType)
         {
-            var randomIndex = Random.Range(0, Constants.Colors.Count);
-            var colorKvp = Constants.Colors.ElementAt(randomIndex);
-            Color = colorKvp.Key;
-            Renderer.material.color = colorKvp.Value;
+            Color = colorType;
+            var color = Constants.Colors[colorType];
+            Renderer.material.color = color;
         }
 
         private void OnSuccessfulHit()

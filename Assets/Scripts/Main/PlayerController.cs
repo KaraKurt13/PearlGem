@@ -3,6 +3,7 @@ using Assets.Scripts.Objects;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -23,9 +24,11 @@ namespace Assets.Scripts.Main
 
         public int RemainingProjectiles { get; private set; } = 3;
 
-        public float ProjectileForce = 20f;
+        public float ProjectileForce { get; set; } = 20f;
 
-        public bool IsReloading = false;
+        public bool IsReloading { get; private set; } = false;
+
+        public Queue<ColorTypeEnum> ProjectilesColorQueue { get; private set; }
 
         private int _ticksTillReload, _maxTickTillReload;
 
@@ -45,6 +48,7 @@ namespace Assets.Scripts.Main
         {
             _maxTickTillReload = TimeHelper.SecondsToTicks(2f);
             _ticksTillReload = _maxTickTillReload;
+            InitializeProjectiles();
             ClearAimLine();
             SpawnProjectile();
         }
@@ -97,8 +101,22 @@ namespace Assets.Scripts.Main
         {
             var projectile = Instantiate(_projectilePrefab, _projectileSpawnPoint.transform.position, Quaternion.identity)
                 .GetComponent<PlayerProjectile>();
+            var nextColor = ProjectilesColorQueue.Dequeue();
             _currentProjectile = projectile;
-            _currentProjectile.SetColor();
+            _currentProjectile.SetColor(nextColor);
+        }
+
+        private void InitializeProjectiles()
+        {
+            ProjectilesColorQueue = new();
+            var allColors = (ColorTypeEnum[])Enum.GetValues(typeof(ColorTypeEnum));
+            var rng = new System.Random();
+            allColors = allColors.OrderBy(_ => rng.Next()).ToArray();
+
+            foreach (var color in allColors)
+            {
+                ProjectilesColorQueue.Enqueue(color);
+            }
         }
 
 

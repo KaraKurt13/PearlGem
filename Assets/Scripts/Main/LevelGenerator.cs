@@ -10,56 +10,60 @@ namespace Assets.Scripts.Main
 {
     public class LevelGenerator : MonoBehaviour
     {
-        [SerializeField]
-        private GameObject _spherePrefab;
+        public GameObject Blue, Red, Green, Yellow, Grey, Magenta;
 
         [SerializeField]
         private Transform _sphereContainer;
 
         private List<Vector3> _hexCenters;
 
-        private List<SphereElement> _sphereElements;
+        private Dictionary<Vector3, SphereElement> _sphereElements;
 
         private float _distanceBetweenSpheres;
 
+        private Dictionary<ColorTypeEnum, GameObject> _spherePrefabs;
+
+        private void Start()
+        {
+            _spherePrefabs = new()
+            {
+                { ColorTypeEnum.Blue, Blue },
+                { ColorTypeEnum.Red, Red },
+                { ColorTypeEnum.Green, Green },
+                { ColorTypeEnum.Yellow, Yellow },
+                { ColorTypeEnum.Grey, Grey },
+                { ColorTypeEnum.Magenta, Magenta },
+            };
+        }
         public void Generate(int radius, int sectorSize, int colorsCount)
         {
             _hexCenters = GenerateIcospherePoints(3, radius);
-            DrawSphereElements();
             CalculateNeighbours();
-            ColorSphere(sectorSize, colorsCount);
+            BuildSphere(sectorSize, colorsCount);
             DivideSphereToSectors();
         }
 
-        private void DrawSphereElements()
-        {
-            _sphereElements = new();
-            foreach (var center in _hexCenters)
-            {
-                var element = Instantiate(_spherePrefab, center, Quaternion.identity, _sphereContainer).GetComponent<SphereElement>();
-                element.Center = center;
-                _sphereElements.Add(element);
-            }
-        }
+        private Dictionary<Vector3, List<Vector3>> _neighbours;
 
         private void CalculateNeighbours()
         {
-            foreach (var element in _sphereElements)
+            _neighbours = new();
+            foreach (var center in _hexCenters)
             {
-                var center = element.Center;
-                element.Neighbours = _sphereElements
-                    .Where(other => other != element && Vector3.Distance(center, other.Center) <= _distanceBetweenSpheres)
+                var neighbours = _hexCenters.Where(t => t != center && Vector3.Distance(center, t) <= _distanceBetweenSpheres)
                     .ToList();
+                _neighbours.Add(center, neighbours);
             }
         }
 
         private Dictionary<ColorTypeEnum, Color> _colors;
 
-        private void ColorSphere(int sectorSize, int colorsCount)
+        private void BuildSphere(int sectorSize, int colorsCount)
         {
             _colors = Constants.Colors;
-            var visitedElements = new HashSet<SphereElement>();
-            var unpaintedElements = new List<SphereElement>(_sphereElements);
+            _sphereElements = new();
+            var visitedElements = new HashSet<Vector3>();
+            var unpaintedElements = new List<Vector3>(_hexCenters);
             var maxColorIndex = _colors.Count;
             var colors = _colors.Keys.Take(colorsCount).ToArray();
 
@@ -71,46 +75,52 @@ namespace Assets.Scripts.Main
                 var startElement = unpaintedElements[Random.Range(0, unpaintedElements.Count)];
                 var sectorColor = colors[index % colorsCount];
                 index++;
-                PaintSector(startElement, sectorColor, visitedElements, unpaintedElements, sectorSize);
+                BuildSegment(startElement, sectorColor, visitedElements, unpaintedElements, sectorSize);
             }
         }
 
-        private void PaintSector(SphereElement start, ColorTypeEnum colorEnum, HashSet<SphereElement> visited, List<SphereElement> unpaintedElements, int sectorSize)
+        private void BuildSegment(Vector3 start, ColorTypeEnum colorEnum, HashSet<Vector3> visited, List<Vector3> unpaintedElements, int segmentSize)
         {
-            var queue = new Queue<SphereElement>();
-            var color = _colors[colorEnum];
+            var queue = new Queue<Vector3>();
+            var spherePrefab = _spherePrefabs[colorEnum];
+
             queue.Enqueue(start);
             visited.Add(start);
             unpaintedElements.Remove(start);
-            //start.Renderer.material.color = color;
-            start.ColorType = colorEnum;
+
+            var startSphere = Instantiate(spherePrefab, start, Quaternion.identity, _sphereContainer).GetComponent<SphereElement>();
+            startSphere.ColorType = colorEnum;
+            startSphere.Center = start;
+            _sphereElements.Add(start, startSphere);
 
             int paintedCount = 1;
-            while (queue.Count > 0 && paintedCount < sectorSize)
+            while (queue.Count > 0 && paintedCount < segmentSize)
             {
                 var current = queue.Dequeue();
 
-                foreach (var neighbour in current.Neighbours)
+                foreach (var neighbour in _neighbours[current])
                 {
                     if (visited.Add(neighbour))
                     {
-                        //neighbour.Renderer.material.color = color;
-                        neighbour.ColorType = colorEnum;
+                        var sphere = Instantiate(spherePrefab, neighbour, Quaternion.identity, _sphereContainer).GetComponent<SphereElement>();
+                        sphere.ColorType = colorEnum;
+                        sphere.Center = neighbour;
+                        _sphereElements.Add(sphere.Center, sphere);
                         queue.Enqueue(neighbour);
                         unpaintedElements.Remove(neighbour);
                         paintedCount++;
 
-                        if (paintedCount >= sectorSize) break;
+                        if (paintedCount >= segmentSize) break;
                     }
                 }
 
-                if (paintedCount >= sectorSize) break;
+                if (paintedCount >= segmentSize) break;
             }
         }
 
         private void DivideSphereToSectors()
         {
-            var uncheckedElements = new HashSet<SphereElement>(_sphereElements);
+            var uncheckedElements = new HashSet<SphereElement>(_sphereElements.Values);
 
             while (uncheckedElements.Count > 0)
             {
@@ -124,6 +134,11 @@ namespace Assets.Scripts.Main
                 while (queue.Count > 0)
                 {
                     var currentElement = queue.Dequeue();
+                    var neighbours = _neighbours[currentElement.Center];
+
+                    foreach (var neighbourCenter in neighbours)
+                        currentElement.Neighbours.Add(_sphereElements[neighbourCenter]);
+
                     sector.Elements.Add(currentElement);
                     currentElement.RelatedSector = sector;
 
@@ -131,6 +146,8 @@ namespace Assets.Scripts.Main
                     {
                         if (uncheckedElements.Contains(neighbor) && neighbor.ColorType == startElement.ColorType)
                         {
+                            sector.Elements.Add(neighbor);
+                            neighbor.RelatedSector = sector;
                             queue.Enqueue(neighbor);
                             uncheckedElements.Remove(neighbor);
                         }
