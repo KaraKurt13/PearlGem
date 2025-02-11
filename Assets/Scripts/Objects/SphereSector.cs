@@ -12,7 +12,7 @@ namespace Assets.Scripts.Objects
         {
             foreach (var element in Elements)
             {
-                element.gameObject.SetActive(false);
+                element.Rigidbody.useGravity = true;
             }
         }
     }

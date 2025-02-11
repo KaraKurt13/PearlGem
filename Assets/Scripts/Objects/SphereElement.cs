@@ -22,10 +22,5 @@ namespace Assets.Scripts.Objects
         {
             RelatedSector.Destroy();
         }
-
-        private void OnTriggerEnter(Collider other)
-        {
-            OnPlayerHit();
-        }
     }
 }

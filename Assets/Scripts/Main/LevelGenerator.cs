@@ -22,16 +22,6 @@ namespace Assets.Scripts.Main
 
         private float _distanceBetweenSpheres;
 
-        private readonly Dictionary<ColorTypeEnum, Color> _colors = new Dictionary<ColorTypeEnum, Color>()
-        {
-                { ColorTypeEnum.Blue, Color.blue },
-                { ColorTypeEnum.Red, Color.red },
-                { ColorTypeEnum.Green, Color.green },
-                { ColorTypeEnum.Yellow, Color.yellow },
-                { ColorTypeEnum.Grey, Color.grey },
-                { ColorTypeEnum.Magenta, Color.magenta }
-        };
-
         public void Generate(int radius, int sectorSize, int colorsCount)
         {
             _hexCenters = GenerateIcospherePoints(3, radius);
@@ -63,8 +53,11 @@ namespace Assets.Scripts.Main
             }
         }
 
+        private Dictionary<ColorTypeEnum, Color> _colors;
+
         private void ColorSphere(int sectorSize, int colorsCount)
         {
+            _colors = Constants.Colors;
             var visitedElements = new HashSet<SphereElement>();
             var unpaintedElements = new List<SphereElement>(_sphereElements);
             var maxColorIndex = _colors.Count;
