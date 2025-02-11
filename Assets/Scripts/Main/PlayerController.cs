@@ -23,6 +23,8 @@ namespace Assets.Scripts.Main
 
         public int RemainingProjectiles { get; private set; } = 3;
 
+        public float ProjectileForce = 20f;
+
         public bool IsReloading = false;
 
         private int _ticksTillReload, _maxTickTillReload;
@@ -32,18 +34,29 @@ namespace Assets.Scripts.Main
         [SerializeField]
         private InputController _inputController;
 
+        [SerializeField]
+        private Transform _projectileSpawnPoint;
+
+        [SerializeField]
+        private GameObject _projectilePrefab;
+
 
         private void Start()
         {
             _maxTickTillReload = TimeHelper.SecondsToTicks(2f);
             _ticksTillReload = _maxTickTillReload;
+            ClearAimLine();
             SpawnProjectile();
         }
 
         private void Update()
         {
-            if (_inputController.IsHolding())
-                UpdateAimLine();
+            if (_inputController.IsHolding() && CanShoot())
+            {
+                var touchPosition = _inputController.GetWorldTouchPosition();
+                DrawTrajectory(_currentProjectile.transform.position, (touchPosition - _currentProjectile.transform.position).normalized);
+            }
+
                 
             if (_inputController.IsReleasing() && CanShoot())
                 LaunchProjectile();
@@ -70,26 +83,15 @@ namespace Assets.Scripts.Main
 
         private void LaunchProjectile()
         {
-            Debug.Log("launch");
             var touchPosition = _inputController.GetWorldTouchPosition();
             var rigidbody = _currentProjectile.Rigidbody;
-            var direction = CalculateDirection(_currentProjectile.transform.position, touchPosition);
-            var force = 20f;
-            rigidbody.velocity = direction * force;
+            var direction = (touchPosition - _currentProjectile.transform.position).normalized;
+            rigidbody.useGravity = true;
+            rigidbody.AddForce(direction * ProjectileForce, ForceMode.Impulse);
             IsReloading = true;
             RemainingProjectiles--;
+            ClearAimLine();
         }
-
-        private Vector3 CalculateDirection(Vector3 startPosition, Vector3 targetPosition)
-        {
-            return (targetPosition - startPosition).normalized;
-        }
-
-        [SerializeField]
-        private Transform _projectileSpawnPoint;
-
-        [SerializeField]
-        private GameObject _projectilePrefab;
 
         private void SpawnProjectile()
         {
@@ -99,9 +101,32 @@ namespace Assets.Scripts.Main
             _currentProjectile.SetColor();
         }
 
-        private void UpdateAimLine()
-        {
 
+        #region AimLine
+        [SerializeField]
+        private LineRenderer _aimLine;
+
+        private int _linePoints = 10;
+        private float _simulationTimeStep = 0.1f;
+
+        void DrawTrajectory(Vector3 startPoint, Vector3 direction)
+        {
+            Vector3 velocity = direction * ProjectileForce;
+            _aimLine.positionCount = _linePoints;
+            
+            for (int i = 0; i < _linePoints; i++)
+            {
+                float simulationTime = i * _simulationTimeStep;
+                Vector3 displacement = velocity * simulationTime + 0.5f * Physics.gravity * simulationTime * simulationTime;
+                Vector3 drawPoint = startPoint + displacement;
+                _aimLine.SetPosition(i, drawPoint);
+            }
         }
+
+        private void ClearAimLine()
+        {
+            _aimLine.positionCount = 0;
+        }
+        #endregion AimLine
     }
 }

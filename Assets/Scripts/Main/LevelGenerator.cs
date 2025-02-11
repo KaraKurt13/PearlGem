@@ -82,7 +82,7 @@ namespace Assets.Scripts.Main
             queue.Enqueue(start);
             visited.Add(start);
             unpaintedElements.Remove(start);
-            start.Renderer.material.color = color;
+            //start.Renderer.material.color = color;
             start.ColorType = colorEnum;
 
             int paintedCount = 1;
@@ -94,7 +94,7 @@ namespace Assets.Scripts.Main
                 {
                     if (visited.Add(neighbour))
                     {
-                        neighbour.Renderer.material.color = color;
+                        //neighbour.Renderer.material.color = color;
                         neighbour.ColorType = colorEnum;
                         queue.Enqueue(neighbour);
                         unpaintedElements.Remove(neighbour);
