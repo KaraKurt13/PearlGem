@@ -27,6 +27,10 @@ namespace Assets.Scripts.Main
 
         public float ProjectileForce { get; set; } = 20f;
 
+        public float MaxProjectileForce { get; } = 60f;
+
+        public float MinProjectileForce { get; } = 5f;
+
         public bool IsReloading { get; private set; } = false;
 
         public Queue<ColorTypeEnum> ProjectilesColorQueue { get; private set; }
@@ -40,16 +44,19 @@ namespace Assets.Scripts.Main
         [SerializeField] private GameObject _projectilePrefab;
         [SerializeField] private PlayerStatsComponent _playerStatsComponent;
 
+        private bool _isPreparingToShoot = false;
+
         private void Update()
         {
             if (_inputController.IsHolding() && CanShoot())
             {
                 var touchPosition = _inputController.GetWorldTouchPosition();
                 DrawTrajectory(CurrentProjectile.transform.position, (touchPosition - CurrentProjectile.transform.position).normalized);
+                _isPreparingToShoot = true;
             }
 
                 
-            if (_inputController.IsReleasing() && CanShoot())
+            if (_isPreparingToShoot && _inputController.IsReleasing() && CanShoot())
             {
                 ClearAimLine();
                 LaunchProjectile();
@@ -84,6 +91,11 @@ namespace Assets.Scripts.Main
             SpawnProjectile();
         }
 
+        public void SetForcePower(float power)
+        {
+            ProjectileForce = power;
+        }
+
         public bool CanShoot()
         {
             return !IsReloading && RemainingProjectiles > 0;
@@ -99,6 +111,7 @@ namespace Assets.Scripts.Main
             IsReloading = true;
             RemainingProjectiles--;
             CurrentProjectile = null;
+            _isPreparingToShoot = false;
         }
 
         private void SpawnProjectile()

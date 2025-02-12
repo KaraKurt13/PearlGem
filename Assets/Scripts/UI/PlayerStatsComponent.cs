@@ -10,6 +10,8 @@ namespace Assets.Scripts.UI
     public class PlayerStatsComponent : ComponentBase
     {
         [SerializeField] private Slider _reloadProgress;
+        [SerializeField] private Slider _forcePower;
+        [SerializeField] private Text _forcePowerText;
         [SerializeField] private ProjectileSubcomponent _currentProjectile;
         [SerializeField] private GameObject _projectilePrefab;
         [SerializeField] private Transform _projectilesQueueContainer;
@@ -45,6 +47,11 @@ namespace Assets.Scripts.UI
             _currentProjectile.Draw();
             _currentProjectile.SetColor(currentColor);
 
+            _forcePower.maxValue = _playerController.MaxProjectileForce;
+            _forcePower.minValue = _playerController.MinProjectileForce;
+            _forcePower.value = _playerController.ProjectileForce;
+            _forcePowerText.text = _playerController.ProjectileForce.ToString("F0");
+
             _isInitialized = true;
         }
 
@@ -69,6 +76,12 @@ namespace Assets.Scripts.UI
 
             if (_projectilesQueue.Count != 0 && _projectilesQueue.Count != _lastCheckQueueCount)
                 _projectilesQueue.Dequeue().Hide();
+        }
+
+        public void OnProjectileForceUpdate(float value)
+        {
+            _playerController.SetForcePower(value);
+            _forcePowerText.text = value.ToString("F0");
         }
 
         private void UpdateReloadProgress()

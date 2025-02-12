@@ -1,27 +1,40 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Assets.Scripts.Main 
 {
     public class InputController : MonoBehaviour
     {
-        public bool TouchHasBegun()
-        {
-            return Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began;
-        }
-
         public bool IsHolding()
         {
-            return Input.touchCount > 0 &&
-                (Input.GetTouch(0).phase == TouchPhase.Stationary ||
-                Input.GetTouch(0).phase == TouchPhase.Moved);
+            if (Input.touchCount > 0)
+            {
+                var touch = Input.GetTouch(0);
+
+                if (EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+                    return false;
+
+                return Input.GetTouch(0).phase == TouchPhase.Stationary || Input.GetTouch(0).phase == TouchPhase.Moved;
+            }
+
+            return false;
         }
 
         public bool IsReleasing()
         {
-            return Input.touchCount > 0 &&
-                Input.GetTouch(0).phase == TouchPhase.Ended;
+            if (Input.touchCount > 0)
+            {
+                var touch = Input.GetTouch(0);
+
+                if (EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+                    return false;
+
+                return Input.GetTouch(0).phase == TouchPhase.Ended;
+            }
+
+            return false;
         }
 
         public Vector3 GetTouchPosition()
