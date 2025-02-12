@@ -20,6 +20,7 @@ namespace Assets.Scripts.Main
 
         void Start()
         {
+            Screen.orientation = ScreenOrientation.Portrait;
             LevelGenerator.Generate(4, 15, 6);
             Sphere.Activate(10f);
             PlayerController.Initialize();
