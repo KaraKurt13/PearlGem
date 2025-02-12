@@ -1,5 +1,6 @@
 using Assets.Scripts.Helpers;
 using Assets.Scripts.Objects;
+using Assets.Scripts.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,11 +19,11 @@ namespace Assets.Scripts.Main
                 if (!IsReloading)
                     return 0;
 
-                return _ticksTillReload / _maxTickTillReload;
+                return (float)_ticksTillReload / _maxTickTillReload;
             }
         }
 
-        public int RemainingProjectiles { get; private set; } = 3;
+        public int RemainingProjectiles { get; private set; } = 6;
 
         public float ProjectileForce { get; set; } = 20f;
 
@@ -30,54 +31,57 @@ namespace Assets.Scripts.Main
 
         public Queue<ColorTypeEnum> ProjectilesColorQueue { get; private set; }
 
+        public PlayerProjectile CurrentProjectile;
+
         private int _ticksTillReload, _maxTickTillReload;
 
-        private PlayerProjectile _currentProjectile;
-
-        [SerializeField]
-        private InputController _inputController;
-
-        [SerializeField]
-        private Transform _projectileSpawnPoint;
-
-        [SerializeField]
-        private GameObject _projectilePrefab;
-
-
-        private void Start()
-        {
-            _maxTickTillReload = TimeHelper.SecondsToTicks(2f);
-            _ticksTillReload = _maxTickTillReload;
-            InitializeProjectiles();
-            ClearAimLine();
-            SpawnProjectile();
-        }
+        [SerializeField] private InputController _inputController;
+        [SerializeField] private Transform _projectileSpawnPoint;
+        [SerializeField] private GameObject _projectilePrefab;
+        [SerializeField] private PlayerStatsComponent _playerStatsComponent;
 
         private void Update()
         {
             if (_inputController.IsHolding() && CanShoot())
             {
                 var touchPosition = _inputController.GetWorldTouchPosition();
-                DrawTrajectory(_currentProjectile.transform.position, (touchPosition - _currentProjectile.transform.position).normalized);
+                DrawTrajectory(CurrentProjectile.transform.position, (touchPosition - CurrentProjectile.transform.position).normalized);
             }
 
                 
             if (_inputController.IsReleasing() && CanShoot())
+            {
+                ClearAimLine();
                 LaunchProjectile();
+                _playerStatsComponent.UpdateQueue();
+            }
         }
 
         private void FixedUpdate()
         {
-            if (IsReloading && RemainingProjectiles > 0)
+            if (IsReloading)
             {
                 _ticksTillReload--;
                 if (_ticksTillReload <= 0)
                 {
                     _ticksTillReload = _maxTickTillReload;
                     IsReloading = false;
-                    SpawnProjectile();
+                    if (RemainingProjectiles > 0)
+                    {
+                        SpawnProjectile();
+                        _playerStatsComponent.UpdateQueue();
+                    }
                 }
             }
+        }
+
+        public void Initialize()
+        {
+            _maxTickTillReload = TimeHelper.SecondsToTicks(2f);
+            _ticksTillReload = _maxTickTillReload;
+            InitializeProjectiles();
+            ClearAimLine();
+            SpawnProjectile();
         }
 
         public bool CanShoot()
@@ -88,13 +92,13 @@ namespace Assets.Scripts.Main
         private void LaunchProjectile()
         {
             var touchPosition = _inputController.GetWorldTouchPosition();
-            var rigidbody = _currentProjectile.Rigidbody;
-            var direction = (touchPosition - _currentProjectile.transform.position).normalized;
+            var rigidbody = CurrentProjectile.Rigidbody;
+            var direction = (touchPosition - CurrentProjectile.transform.position).normalized;
             rigidbody.useGravity = true;
             rigidbody.AddForce(direction * ProjectileForce, ForceMode.Impulse);
             IsReloading = true;
             RemainingProjectiles--;
-            ClearAimLine();
+            CurrentProjectile = null;
         }
 
         private void SpawnProjectile()
@@ -102,8 +106,8 @@ namespace Assets.Scripts.Main
             var projectile = Instantiate(_projectilePrefab, _projectileSpawnPoint.transform.position, Quaternion.identity)
                 .GetComponent<PlayerProjectile>();
             var nextColor = ProjectilesColorQueue.Dequeue();
-            _currentProjectile = projectile;
-            _currentProjectile.SetColor(nextColor);
+            CurrentProjectile = projectile;
+            CurrentProjectile.SetColor(nextColor);
         }
 
         private void InitializeProjectiles()
@@ -118,7 +122,6 @@ namespace Assets.Scripts.Main
                 ProjectilesColorQueue.Enqueue(color);
             }
         }
-
 
         #region AimLine
         [SerializeField]

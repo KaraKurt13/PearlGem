@@ -22,5 +22,10 @@ namespace Assets.Scripts.Objects
         {
             RelatedSector.Destroy();
         }
+
+        private void OnBecameInvisible()
+        {
+            Destroy(gameObject);
+        }
     }
 }

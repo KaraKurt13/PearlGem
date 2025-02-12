@@ -12,9 +12,6 @@ namespace Assets.Scripts.Main
     {
         public GameObject Blue, Red, Green, Yellow, Grey, Magenta;
 
-        [SerializeField]
-        private Transform _sphereContainer;
-
         private List<Vector3> _hexCenters;
 
         private Dictionary<Vector3, SphereElement> _sphereElements;
@@ -22,6 +19,8 @@ namespace Assets.Scripts.Main
         private float _distanceBetweenSpheres;
 
         private Dictionary<ColorTypeEnum, GameObject> _spherePrefabs;
+
+        [SerializeField] private Transform _sphereContainer;
 
         private void Start()
         {
